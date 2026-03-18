@@ -3,9 +3,22 @@ name: Publish User Center SDK
 on:
   push:
     tags:
+      - 'v*'
       - 'sdk-v*'
-    paths:
-      - 'user-center-sdk/**'
+  workflow_dispatch:
+    inputs:
+      registry:
+        description: 'Registry to publish to'
+        required: true
+        default: 'npm'
+        type: choice
+        options:
+          - npm
+          - github
+      version:
+        description: 'Version to publish (optional)'
+        required: false
+        default: 'latest'
 
 jobs:
   publish:
@@ -24,30 +37,39 @@ jobs:
           bun-version: latest
       
       - name: Install dependencies
-        run: |
-          cd user-center-sdk
-          bun install
+        run: bun install
       
-      - name: Build SDK
-        run: |
-          cd user-center-sdk
-          bun run build
+      - name: Type check
+        run: bun run type-check
       
       - name: Run tests
-        run: |
-          cd user-center-sdk
-          bun run test
+        run: bun run test
+      
+      - name: Build SDK
+        run: bun run build
       
       - name: Setup Node for NPM
+        if: github.event.inputs.registry == 'npm' || github.event.inputs.registry == ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Setup Node for GitHub Packages
+        if: github.event.inputs.registry == 'github'
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@your-github-username'
+      
+      - name: Publish to NPM
+        if: github.event.inputs.registry == 'npm' || github.event.inputs.registry == ''
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
       - name: Publish to GitHub Packages
-        run: |
-          cd user-center-sdk
-          npm publish
+        if: github.event.inputs.registry == 'github'
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
