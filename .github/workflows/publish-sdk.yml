@@ -10,11 +10,11 @@ on:
       registry:
         description: 'Registry to publish to'
         required: true
-        default: 'npm'
+        default: 'github'
         type: choice
         options:
-          - npm
           - github
+          - npm
       version:
         description: 'Version to publish (optional)'
         required: false
@@ -48,28 +48,40 @@ jobs:
       - name: Build SDK
         run: bun run build
       
-      - name: Setup Node for NPM
-        if: github.event.inputs.registry == 'npm' || github.event.inputs.registry == ''
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
-      
       - name: Setup Node for GitHub Packages
-        if: github.event.inputs.registry == 'github'
+        if: github.event.inputs.registry == 'github' || github.event.inputs.registry == ''
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           registry-url: 'https://npm.pkg.github.com'
       
-      - name: Publish to NPM
-        if: github.event.inputs.registry == 'npm' || github.event.inputs.registry == ''
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Setup Node for NPM
+        if: github.event.inputs.registry == 'npm'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Check NPM Token
+        if: github.event.inputs.registry == 'npm'
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "❌ NPM_TOKEN secret is not set"
+            echo "Please add NPM_TOKEN to your repository secrets to publish to NPM"
+            echo "Go to: Settings > Secrets and variables > Actions > New repository secret"
+            exit 1
+          else
+            echo "✅ NPM_TOKEN is configured"
+          fi
       
       - name: Publish to GitHub Packages
-        if: github.event.inputs.registry == 'github'
+        if: github.event.inputs.registry == 'github' || github.event.inputs.registry == ''
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Publish to NPM
+        if: github.event.inputs.registry == 'npm'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

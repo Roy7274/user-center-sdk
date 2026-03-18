@@ -1,5 +1,5 @@
 {
-  "name": "user-center-sdk",
+  "name": "@Roy7274/user-center-sdk",
   "version": "0.1.0",
   "description": "User Center SDK for Next.js 14+ with authentication, points management, and on-chain payments",
   "type": "module",
