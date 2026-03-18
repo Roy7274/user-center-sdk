@@ -1,0 +1,53 @@
+name: Publish User Center SDK
+
+on:
+  push:
+    tags:
+      - 'sdk-v*'
+    paths:
+      - 'user-center-sdk/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Install dependencies
+        run: |
+          cd user-center-sdk
+          bun install
+      
+      - name: Build SDK
+        run: |
+          cd user-center-sdk
+          bun run build
+      
+      - name: Run tests
+        run: |
+          cd user-center-sdk
+          bun run test
+      
+      - name: Setup Node for NPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@your-github-username'
+      
+      - name: Publish to GitHub Packages
+        run: |
+          cd user-center-sdk
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

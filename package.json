@@ -1,0 +1,105 @@
+{
+  "name": "@your-github-username/user-center-sdk",
+  "version": "0.1.0",
+  "description": "User Center SDK for Next.js 14+ with authentication, points management, and on-chain payments",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "import": "./dist/config/index.mjs",
+      "require": "./dist/config/index.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "import": "./dist/auth/index.mjs",
+      "require": "./dist/auth/index.js"
+    },
+    "./points": {
+      "types": "./dist/points/index.d.ts",
+      "import": "./dist/points/index.mjs",
+      "require": "./dist/points/index.js"
+    },
+    "./deposit": {
+      "types": "./dist/deposit/index.d.ts",
+      "import": "./dist/deposit/index.mjs",
+      "require": "./dist/deposit/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.mjs",
+      "require": "./dist/components/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "example:install": "cd examples/nextjs-app && npm install",
+    "example:dev": "cd examples/nextjs-app && npm run dev",
+    "example:build": "cd examples/nextjs-app && npm run build"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0",
+    "next-auth": "^4.24.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@web3auth/base": "^9.6.0",
+    "@web3auth/ethereum-provider": "^9.6.0",
+    "@web3auth/modal": "^9.6.0",
+    "ethers": "^6.13.0",
+    "swr": "^2.2.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.18.0",
+    "jsdom": "^25.0.1",
+    "next": "^15.1.6",
+    "next-auth": "^4.24.11",
+    "prettier": "^3.4.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.8"
+  },
+  "keywords": [
+    "nextjs",
+    "authentication",
+    "web3auth",
+    "nextauth",
+    "points",
+    "payment",
+    "blockchain",
+    "bsc",
+    "sdk"
+  ],
+  "author": "",
+  "license": "MIT"
+}
