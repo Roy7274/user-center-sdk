@@ -12,6 +12,7 @@ import {
   setTokenRefreshCallback,
   setAccessTokenGetter,
 } from './api-client'
+import { APIError, NetworkError } from '../utils/error-handling'
 import { initSDKConfig, resetSDKConfig } from '../config/sdk-config'
 
 // Mock fetch

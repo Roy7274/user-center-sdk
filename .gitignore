@@ -42,3 +42,4 @@ yarn-error.log*
 .temp/
 
 examples/
+.kiro/

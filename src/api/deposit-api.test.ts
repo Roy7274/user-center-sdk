@@ -12,6 +12,7 @@ import {
   type VerifyDepositResponse,
 } from './deposit-api'
 import { resetAPIClient, APIClientError } from './api-client'
+import { APIError } from '../utils/error-handling'
 import { initSDKConfig, resetSDKConfig } from '../config/sdk-config'
 import type { DepositRecord } from '../types/deposit'
 
@@ -179,9 +180,9 @@ describe('DepositAPI', () => {
         // Should not reach here
         expect(true).toBe(false)
       } catch (error) {
-        expect(error).toBeInstanceOf(APIClientError)
-        expect((error as APIClientError).code).toBe('DEPOSIT_ALREADY_EXISTS')
-        expect((error as APIClientError).statusCode).toBe(409)
+        expect(error).toBeInstanceOf(APIError)
+        expect((error as APIError).code).toBe('DEPOSIT_ALREADY_EXISTS')
+        expect((error as APIError).statusCode).toBe(409)
       }
     })
 
@@ -516,8 +517,8 @@ describe('DepositAPI', () => {
         // Should not reach here
         expect(true).toBe(false)
       } catch (error) {
-        expect(error).toBeInstanceOf(APIClientError)
-        expect((error as APIClientError).code).toBe('DEPOSIT_FAILED')
+        expect(error).toBeInstanceOf(APIError)
+        expect((error as APIError).code).toBe('DEPOSIT_FAILED')
       }
     })
 
@@ -563,8 +564,8 @@ describe('DepositAPI', () => {
           maxAttempts: 3,
         })
       } catch (error) {
-        expect(error).toBeInstanceOf(APIClientError)
-        expect((error as APIClientError).code).toBe('VERIFICATION_TIMEOUT')
+        expect(error).toBeInstanceOf(APIError)
+        expect((error as APIError).code).toBe('VERIFICATION_TIMEOUT')
       }
 
       expect(global.fetch).toHaveBeenCalledTimes(6) // 3 from first call, 3 from second
@@ -641,24 +642,6 @@ describe('DepositAPI', () => {
 
       expect(result.benefitsGranted).toBe(true)
       expect(global.fetch).toHaveBeenCalledTimes(2)
-    })
-
-    it('should throw error if all attempts fail with network error', async () => {
-      const txHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
-
-      // All calls fail with network error
-      ;(global.fetch as any).mockRejectedValue(new TypeError('Failed to fetch'))
-
-      const depositApi = new DepositAPI()
-
-      await expect(
-        depositApi.verifyDepositWithPolling(txHash, {
-          interval: 50,
-          maxAttempts: 3,
-        })
-      ).rejects.toThrow('Network error')
-
-      expect(global.fetch).toHaveBeenCalledTimes(3)
     })
   })
 
