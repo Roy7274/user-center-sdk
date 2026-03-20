@@ -134,11 +134,16 @@ export function useDeposit(): UseDepositReturn {
       })
 
       setStep('idle')
+
+      const recordStatus = result.record.status
+      const processed = recordStatus !== 'pending'
+      const verified = recordStatus === 'confirmed'
+
       return {
-        verified: result.verified,
-        processed: result.processed,
+        verified,
+        processed,
         benefitsGranted: result.benefitsGranted,
-        depositRecord: result.depositRecord,
+        depositRecord: result.record,
       }
     } catch (err) {
       const error = err as Error
@@ -274,11 +279,7 @@ export function useDeposit(): UseDepositReturn {
         txHash: receipt.hash,
         tokenType: request.tokenType,
         amount: request.amount,
-        status: verifyResult.processed
-          ? verifyResult.verified
-            ? 'confirmed'
-            : 'failed'
-          : 'pending',
+        status: verifyResult.record.status,
         benefitsGranted: verifyResult.benefitsGranted,
       }
 

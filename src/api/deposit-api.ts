@@ -59,13 +59,11 @@ export interface SavePaymentRecordOnlyRequest {
  * Verify deposit response
  */
 export interface VerifyDepositResponse {
-  processed: boolean
-  verified: boolean
-  benefitsGranted: boolean
   /**
    * user-center 的原始 deposit_record（用于需要更细节时）
    */
-  depositRecord?: any
+  record: DepositRecord
+  benefitsGranted: boolean
 }
 
 /**
@@ -103,10 +101,7 @@ export class DepositAPI {
     const client = getAPIClient()
     
     try {
-      return await client.post<DepositRecord>(
-        '/payment/deposit-record',
-        request
-      )
+      return await client.post<DepositRecord>('/deposit/save', request)
     } catch (error) {
       // Handle 409 Conflict (idempotency - record already exists)
       if ((error instanceof APIClientError || error instanceof APIError) && error.statusCode === 409) {
@@ -185,19 +180,26 @@ export class DepositAPI {
    */
   async verifyDeposit(
     txHash: string,
-    userId: string
+    userId?: string
   ): Promise<VerifyDepositResponse> {
     const client = getAPIClient()
-    const res = await client.get<any>(`/payment/verify/${txHash}`, {
-      params: { user_id: userId },
+    const res = await client.get<VerifyDepositResponse>(`/deposit/verify`, {
+      params: {
+        txHash,
+        ...(userId ? { user_id: userId } : {}),
+      },
     })
 
-    return {
-      verified: Boolean(res?.verified),
-      processed: Boolean(res?.processed),
-      benefitsGranted: Boolean(res?.processed),
-      depositRecord: res?.deposit_record,
+    if (!res?.record) {
+      throw new APIError(
+        'Invalid deposit verification response',
+        'DEPOSIT_VERIFY_INVALID_RESPONSE',
+        undefined,
+        { txHash }
+      )
     }
+
+    return res
   }
 
   /**
@@ -225,12 +227,19 @@ export class DepositAPI {
    */
   async verifyDepositWithPolling(
     txHash: string,
-    userId: string,
-    options: {
+    userIdOrOptions?: string | {
+      interval?: number
+      maxAttempts?: number
+    },
+    maybeOptions: {
       interval?: number
       maxAttempts?: number
     } = {}
   ): Promise<VerifyDepositResponse> {
+    const userId = typeof userIdOrOptions === 'string' ? userIdOrOptions : undefined
+    const options =
+      typeof userIdOrOptions === 'string' ? maybeOptions : (userIdOrOptions ?? {})
+
     const { interval = 3000, maxAttempts = 20 } = options
     
     let attempts = 0
@@ -244,6 +253,16 @@ export class DepositAPI {
         // If benefits are granted, return immediately
         if (result.benefitsGranted) {
           return result
+        }
+
+        // If deposit failed, stop polling and throw.
+        if (result.record.status === 'failed') {
+          throw new APIError(
+            'Deposit verification failed',
+            'DEPOSIT_FAILED',
+            undefined,
+            { txHash, record: result.record }
+          )
         }
         
         // If not the last attempt, wait before polling again
