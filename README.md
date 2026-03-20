@@ -60,6 +60,7 @@ function PointsDisplay() {
 
 ## 📖 文档
 
+- [💳 SDK 支付使用说明](./docs/sdk-支付使用说明.md) - 充值（含权益）与仅支付（PaymentOnly）接入指南
 - [📦 安装指南](./INSTALLATION-GUIDE.md) - 详细的安装和配置说明
 - [📚 API 文档](./API.md) - 完整的 API 参考
 - [🎯 使用示例](./examples/) - 实际项目示例

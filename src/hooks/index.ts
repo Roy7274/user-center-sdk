@@ -16,3 +16,5 @@ export { useWallet, type UseWalletReturn } from './useWallet'
 
 // Export useDeposit hook
 export { useDeposit, type UseDepositReturn } from './useDeposit'
+
+export { usePaymentOnly, type UsePaymentOnlyReturn } from '../payments/payment-only/usePaymentOnly'

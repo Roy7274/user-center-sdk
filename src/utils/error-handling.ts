@@ -249,11 +249,17 @@ export function isTimeoutError(error: Error): boolean {
  * Detect if error is a user rejection
  */
 export function isUserRejectionError(error: Error): boolean {
+  const msg = error.message.toLowerCase()
+  const code = (error as any).code
   return (
     error instanceof UserRejectionError ||
-    error.message.toLowerCase().includes('user rejected') ||
-    error.message.toLowerCase().includes('user denied') ||
-    error.message.toLowerCase().includes('user cancelled')
+    code === 4001 ||
+    code === 'ACTION_REJECTED' ||
+    msg.includes('user rejected') ||
+    msg.includes('user denied') ||
+    msg.includes('user cancelled') ||
+    msg.includes('action_rejected') ||
+    msg.includes('ethers-user-denied')
   )
 }
 
@@ -280,13 +286,13 @@ export function normalizeError(error: unknown): SDKError {
     return new SDKError(String(error), 'UNKNOWN_ERROR')
   }
   
-  // Check for specific error patterns
+  // Check for specific error patterns — use default friendly messages, not raw strings
   if (isUserRejectionError(error)) {
-    return new UserRejectionError(error.message)
+    return new UserRejectionError()
   }
   
   if (isInsufficientBalanceError(error)) {
-    return new InsufficientBalanceError(error.message)
+    return new InsufficientBalanceError()
   }
   
   if (isNetworkError(error)) {

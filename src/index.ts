@@ -32,6 +32,9 @@ export * from './points'
 // Deposit module
 export * from './deposit'
 
+// Payment-only (no benefit polling)
+export * from './payments'
+
 // Hooks
 export * from './hooks'
 

@@ -36,6 +36,11 @@ export {
 } from './DepositDialog'
 
 export {
+  PaymentOnlyDialog,
+  type PaymentOnlyDialogProps,
+} from '../payments/payment-only'
+
+export {
   PointsDisplay,
   type PointsDisplayProps,
 } from './PointsDisplay'

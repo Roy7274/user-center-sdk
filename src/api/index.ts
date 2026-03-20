@@ -38,5 +38,6 @@ export {
   getDepositAPI,
   resetDepositAPI,
   type SaveDepositRecordRequest,
+  type SavePaymentRecordOnlyRequest,
   type VerifyDepositResponse,
 } from './deposit-api'

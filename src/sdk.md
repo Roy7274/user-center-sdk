@@ -172,6 +172,42 @@ const depositRecord = await sdk.deposit.saveDepositRecord({
 })
 
 const verifyResult = await sdk.deposit.verifyDeposit('0x...')
+
+// Payment only (save record without benefit_type; no benefit polling)
+const paymentRecord = await sdk.deposit.savePaymentRecordOnly({
+  userId: 'user-id',
+  txHash: '0x...',
+  tokenType: 'USDT',
+  tokenAddress: '0x...',
+  amount: '49.9',
+  amountWei: '...',
+  walletAddress: '0x...',
+  network: 'BSC Testnet',
+  timestamp: Math.floor(Date.now() / 1000),
+  orderId: 'order-001',
+  orderName: 'Membership',
+})
+```
+
+React UI / hook:
+
+```typescript
+import { PaymentOnlyDialog, usePaymentOnly } from '@ai-agent/user-center-sdk'
+
+// Dialog with prefilled order + amount
+<PaymentOnlyDialog
+  open={open}
+  onOpenChange={setOpen}
+  initialRequest={{
+    userId: session.user.id,
+    tokenType: 'USDT',
+    amount: '49.9',
+    orderId: 'order-20260320-0001',
+    orderName: '购买会员',
+    metadata: { plan: 'SVIP' },
+  }}
+  onSuccess={(r) => console.log(r.txHash, r.backendRecordId)}
+/>
 ```
 
 ## Helper Functions
