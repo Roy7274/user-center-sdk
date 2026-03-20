@@ -38,6 +38,11 @@ export interface DepositDialogProps {
   defaultTokenType?: TokenType
   /** Preset amount buttons to show */
   presetAmounts?: number[]
+
+  /**
+   * User Center 用户 ID（用于 /payment/deposit-record 与 /payment/verify/:txHash 校验）
+   */
+  userId: string
 }
 
 /**
@@ -98,6 +103,7 @@ export function DepositDialog({
   onError,
   defaultTokenType = 'USDT',
   presetAmounts = [10, 50, 100, 500],
+  userId,
 }: DepositDialogProps) {
   const { deposit, isLoading, step, error: depositError } = useDeposit()
   
@@ -157,11 +163,13 @@ export function DepositDialog({
     }
 
     try {
+      const points = Math.max(1, Math.floor(amountValue * 10)) // user-center requires benefit_amount > 0
       const request: DepositRequest = {
+        userId,
         tokenType,
         amount,
         benefitType: 'points',
-        benefitAmount: Math.floor(amountValue * 10), // 1 USD = 10 points
+        benefitAmount: points,
       }
 
       const result = await deposit(request)
@@ -341,7 +349,7 @@ export function DepositDialog({
 
         {/* Info text */}
         <p className="mt-4 text-center text-xs text-gray-500">
-          You will receive {amount ? Math.floor(parseFloat(amount) * 10) : 0} points
+          You will receive {amount ? Math.max(1, Math.floor(parseFloat(amount) * 10)) : 0} points
         </p>
       </div>
     </div>

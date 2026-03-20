@@ -17,6 +17,11 @@ export type DepositStatus = 'pending' | 'confirmed' | 'failed'
  * Deposit request
  */
 export interface DepositRequest {
+  /**
+   * User Center 用户 ID（user-center 的 DepositRecordDto 必填）
+   * 该字段用于在 `/payment/deposit-record` 与 `/payment/verify/:txHash` 中校验归属。
+   */
+  userId: string
   tokenType: TokenType
   amount: string
   benefitType: BenefitType

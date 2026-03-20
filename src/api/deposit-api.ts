@@ -19,21 +19,33 @@ import type {
  * Save deposit record request
  */
 export interface SaveDepositRecordRequest {
+  userId: string
   txHash: string
   tokenType: 'BNB' | 'USDT'
+  tokenAddress: string | null
   amount: string
+  amountWei: string
+  walletAddress: string
+  network: string
+  blockNumber?: number | null
+  timestamp: number
   benefitType: 'points' | 'membership'
   benefitAmount?: number
-  membershipLevel?: 'VIP' | 'SVIP'
-  membershipDays?: number
+  benefitLevel?: 'VIP' | 'SVIP'
+  benefitExpireAt?: number | null
 }
 
 /**
  * Verify deposit response
  */
 export interface VerifyDepositResponse {
-  record: DepositRecord
+  processed: boolean
+  verified: boolean
   benefitsGranted: boolean
+  /**
+   * user-center 的原始 deposit_record（用于需要更细节时）
+   */
+  depositRecord?: any
 }
 
 /**
@@ -71,7 +83,10 @@ export class DepositAPI {
     const client = getAPIClient()
     
     try {
-      return await client.post<DepositRecord>('/deposit/save', request)
+      return await client.post<DepositRecord>(
+        '/payment/deposit-record',
+        request
+      )
     } catch (error) {
       // Handle 409 Conflict (idempotency - record already exists)
       if ((error instanceof APIClientError || error instanceof APIError) && error.statusCode === 409) {
@@ -104,11 +119,21 @@ export class DepositAPI {
    * }
    * ```
    */
-  async verifyDeposit(txHash: string): Promise<VerifyDepositResponse> {
+  async verifyDeposit(
+    txHash: string,
+    userId: string
+  ): Promise<VerifyDepositResponse> {
     const client = getAPIClient()
-    return client.get<VerifyDepositResponse>('/deposit/verify', {
-      params: { txHash },
+    const res = await client.get<any>(`/payment/verify/${txHash}`, {
+      params: { user_id: userId },
     })
+
+    return {
+      verified: Boolean(res?.verified),
+      processed: Boolean(res?.processed),
+      benefitsGranted: Boolean(res?.processed),
+      depositRecord: res?.deposit_record,
+    }
   }
 
   /**
@@ -136,6 +161,7 @@ export class DepositAPI {
    */
   async verifyDepositWithPolling(
     txHash: string,
+    userId: string,
     options: {
       interval?: number
       maxAttempts?: number
@@ -149,21 +175,11 @@ export class DepositAPI {
       attempts++
       
       try {
-        const result = await this.verifyDeposit(txHash)
+        const result = await this.verifyDeposit(txHash, userId)
         
         // If benefits are granted, return immediately
         if (result.benefitsGranted) {
           return result
-        }
-        
-        // If status is failed, throw error
-        if (result.record.status === 'failed') {
-          throw new APIError(
-            'Deposit transaction failed',
-            'DEPOSIT_FAILED',
-            undefined,
-            { txHash, status: result.record.status }
-          )
         }
         
         // If not the last attempt, wait before polling again

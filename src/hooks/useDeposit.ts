@@ -15,6 +15,7 @@
 
 import { useState, useCallback } from 'react'
 import { mutate } from 'swr'
+import { parseUnits } from 'ethers'
 import { useWeb3 } from '../components/Web3Provider'
 import { getDepositAPI } from '../api/deposit-api'
 import { getSDKConfig } from '../config/sdk-config'
@@ -32,7 +33,6 @@ import type {
   DepositRequest,
   DepositResult,
   DepositStep,
-  DepositRecord,
 } from '../types/deposit'
 
 /**
@@ -40,7 +40,15 @@ import type {
  */
 export interface UseDepositReturn {
   deposit: (request: DepositRequest) => Promise<DepositResult>
-  verifyDeposit: (txHash: string) => Promise<DepositRecord>
+  verifyDeposit: (
+    txHash: string,
+    userId: string
+  ) => Promise<{
+    verified: boolean
+    processed: boolean
+    benefitsGranted: boolean
+    depositRecord?: unknown
+  }>
   isLoading: boolean
   step: DepositStep
   error: Error | null
@@ -104,20 +112,34 @@ export function useDeposit(): UseDepositReturn {
    * @param txHash - Transaction hash to verify
    * @returns Deposit record when verification is complete
    */
-  const verifyDeposit = useCallback(async (txHash: string): Promise<DepositRecord> => {
+  const verifyDeposit = useCallback(
+    async (
+      txHash: string,
+      userId: string,
+    ): Promise<{
+      verified: boolean
+      processed: boolean
+      benefitsGranted: boolean
+      depositRecord?: unknown
+    }> => {
     setIsLoading(true)
     setStep('verifying')
     setError(null)
 
     try {
       const depositAPI = getDepositAPI()
-      const result = await depositAPI.verifyDepositWithPolling(txHash, {
+      const result = await depositAPI.verifyDepositWithPolling(txHash, userId, {
         interval: 3000,
         maxAttempts: 20,
       })
 
       setStep('idle')
-      return result.record
+      return {
+        verified: result.verified,
+        processed: result.processed,
+        benefitsGranted: result.benefitsGranted,
+        depositRecord: result.depositRecord,
+      }
     } catch (err) {
       const error = err as Error
       setError(error)
@@ -126,7 +148,9 @@ export function useDeposit(): UseDepositReturn {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  },
+  [],
+)
 
   /**
    * Execute deposit flow
@@ -184,14 +208,46 @@ export function useDeposit(): UseDepositReturn {
       // Step 5: Save deposit record to backend
       const depositAPI = getDepositAPI()
       try {
+        const sdkConfig = getSDKConfig()
+        const tokenAddress = request.tokenType === 'USDT' ? sdkConfig.usdtAddress : null
+
+        const amountWei = parseUnits(request.amount, 18).toString()
+        const walletAddress = web3.address
+        const blockNumber = receipt.blockNumber ?? null
+
+        // 获取区块时间戳（秒）
+        let timestamp = Math.floor(Date.now() / 1000)
+        try {
+          const provider = web3.signer.provider
+          if (provider && blockNumber != null) {
+            const block = await provider.getBlock(blockNumber)
+            if (block?.timestamp) timestamp = block.timestamp
+          }
+        } catch {
+          // 回退到本地时间，保证请求可发起
+        }
+
+        const network = sdkConfig.bscNetwork === 'mainnet' ? 'BSC Mainnet' : 'BSC Testnet'
+        const benefitExpireAt =
+          request.benefitType === 'membership' && request.membershipDays
+            ? timestamp + request.membershipDays * 24 * 60 * 60
+            : null
+
         await depositAPI.saveDepositRecord({
           txHash: receipt.hash,
+          userId: request.userId,
           tokenType: request.tokenType,
           amount: request.amount,
+          tokenAddress,
+          amountWei,
+          walletAddress: walletAddress!,
+          network,
+          blockNumber,
+          timestamp,
           benefitType: request.benefitType,
-          benefitAmount: request.benefitAmount,
-          membershipLevel: request.membershipLevel,
-          membershipDays: request.membershipDays,
+          benefitAmount: request.benefitType === 'points' ? request.benefitAmount : undefined,
+          benefitLevel: request.benefitType === 'membership' ? request.membershipLevel : undefined,
+          benefitExpireAt,
         })
       } catch (err) {
         // If record already exists (409), continue to verification
@@ -203,10 +259,14 @@ export function useDeposit(): UseDepositReturn {
 
       // Step 6: Poll for verification
       setStep('verifying')
-      const verifyResult = await depositAPI.verifyDepositWithPolling(receipt.hash, {
+      const verifyResult = await depositAPI.verifyDepositWithPolling(
+        receipt.hash,
+        request.userId,
+        {
         interval: 3000,
         maxAttempts: 20,
-      })
+        },
+      )
 
       setStep('idle')
 
@@ -214,7 +274,11 @@ export function useDeposit(): UseDepositReturn {
         txHash: receipt.hash,
         tokenType: request.tokenType,
         amount: request.amount,
-        status: verifyResult.record.status,
+        status: verifyResult.processed
+          ? verifyResult.verified
+            ? 'confirmed'
+            : 'failed'
+          : 'pending',
         benefitsGranted: verifyResult.benefitsGranted,
       }
 
