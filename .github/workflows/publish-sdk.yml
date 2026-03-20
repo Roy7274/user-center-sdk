@@ -16,9 +16,9 @@ on:
           - github
           - npm
       version:
-        description: 'Version to publish (optional)'
+        description: 'Version to publish (optional; overrides package.json version)'
         required: false
-        default: 'latest'
+        default: ''
 
 jobs:
   publish:
@@ -47,6 +47,30 @@ jobs:
       
       - name: Build SDK
         run: bun run build
+
+      - name: Set version for publish
+        shell: bash
+        env:
+          DISPATCH_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+
+          # Determine publish version:
+          # - For workflow_dispatch: use inputs.version when provided (and not 'latest')
+          # - For tag push: derive from tag name (v1.2.3 / sdk-v1.2.3 -> 1.2.3)
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#sdk-v}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION="${DISPATCH_VERSION}"
+            if [[ -z "$VERSION" || "$VERSION" == "latest" ]]; then
+              VERSION="$(node -p "require('./package.json').version")"
+            fi
+          fi
+
+          echo "Publish version: $VERSION"
+          node -e "const fs=require('fs'); const pkg=require('./package.json'); pkg.version=process.argv[1]; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" "$VERSION"
       
       - name: Debug registry selection
         run: |
